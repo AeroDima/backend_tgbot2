@@ -13,10 +13,18 @@ export function initDB() {
       height REAL,
       sex TEXT,
       activity_level TEXT,
+      goal TEXT,
       bmr REAL,
       tdee REAL
     )
   `).run();
+
+  // Migration: try to add goal column if it doesn't exist
+  try {
+    db.prepare('ALTER TABLE users ADD COLUMN goal TEXT').run();
+  } catch (e) {
+    // Column might already exist
+  }
 
   // Meals table
   db.prepare(`
@@ -35,14 +43,15 @@ export function initDB() {
 
 export function saveUserProfile(telegramId: number, profile: UserProfile) {
   const upsert = db.prepare(`
-    INSERT INTO users (telegram_id, age, weight, height, sex, activity_level, bmr, tdee)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (telegram_id, age, weight, height, sex, activity_level, goal, bmr, tdee)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(telegram_id) DO UPDATE SET
       age = excluded.age,
       weight = excluded.weight,
       height = excluded.height,
       sex = excluded.sex,
       activity_level = excluded.activity_level,
+      goal = excluded.goal,
       bmr = excluded.bmr,
       tdee = excluded.tdee
   `);
@@ -53,6 +62,7 @@ export function saveUserProfile(telegramId: number, profile: UserProfile) {
     profile.height,
     profile.sex,
     profile.activity,
+    profile.goal,
     profile.bmr,
     profile.tdee
   );
@@ -66,7 +76,8 @@ export function getUserProfile(telegramId: number): UserProfile | null {
     weight: row.weight,
     height: row.height,
     sex: row.sex,
-    activity: row.activity_level,
+    activity: row.activity_level as any,
+    goal: row.goal as any,
     bmr: row.bmr,
     tdee: row.tdee,
   };

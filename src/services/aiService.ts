@@ -71,3 +71,25 @@ export async function estimateCalories(mealText: string): Promise<EstimationResu
     return null;
   }
 }
+
+export async function getMealIdeas(goal: string, tdee: number): Promise<string[]> {
+  if (!apiKey) return ['Омлет з овочами', 'Курка з рисом', 'Грецький йогурт'];
+
+  const prompt = `
+    Based on the user's goal: "${goal}" and their daily calorie expenditure (TDEE): ${tdee} kcal,
+    suggest 3 simple and healthy meal ideas. 
+    Keep it short, clear, and in Ukrainian. 
+    Do not provide medical advice.
+    Return only the list of 3 items, each on a new line, starting with a dash.
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text().trim();
+    return text.split('\n').filter(line => line.trim().startsWith('-')).map(line => line.replace(/^- /, '').trim());
+  } catch (error) {
+    console.error('AI Ideas Error:', error);
+    return ['Омлет з овочами', 'Курка з рисом', 'Грецький йогурт'];
+  }
+}

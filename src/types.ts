@@ -2,12 +2,15 @@ export type Sex = 'male' | 'female';
 
 export type ActivityLevel = 'low' | 'light' | 'medium' | 'high';
 
+export type Goal = 'lose' | 'maintain' | 'gain';
+
 export interface UserProfile {
   age: number;
   height: number;
   weight: number;
   sex: Sex;
   activity: ActivityLevel;
+  goal: Goal;
   bmr?: number;
   tdee?: number;
 }

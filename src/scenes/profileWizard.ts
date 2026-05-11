@@ -1,9 +1,15 @@
 import { Scenes, Markup } from 'telegraf';
-import { UserProfile, Sex, ActivityLevel } from '../types.js';
+import { UserProfile, Sex, ActivityLevel, Goal } from '../types.js';
 import { calculateBMR, calculateTDEE } from '../utils/calculator.js';
 import { saveUserProfile } from '../database/db.js';
 
 export const PROFILE_WIZARD_ID = 'PROFILE_WIZARD';
+
+const GOAL_LABELS: Record<string, Goal> = {
+  '🔻 Схуднення': 'lose',
+  '⚖️ Підтримка': 'maintain',
+  '🔺 Набір маси': 'gain',
+};
 
 export const profileWizard = new Scenes.WizardScene<Scenes.WizardContext>(
   PROFILE_WIZARD_ID,
@@ -70,12 +76,29 @@ export const profileWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     );
     return ctx.wizard.next();
   },
-  // Final Step: Calculation and Result
+  // Step 6: Goal
   async (ctx) => {
     const activity = (ctx.message as any)?.text as ActivityLevel;
     const validActivities: ActivityLevel[] = ['low', 'light', 'medium', 'high'];
     if (!validActivities.includes(activity)) {
       await ctx.reply('❌ Будь ласка, оберіть рівень активності за допомогою кнопок:');
+      return;
+    }
+    (ctx.wizard.state as any).activity = activity;
+    await ctx.reply(
+      '6️⃣ Яка ваша ціль?',
+      Markup.keyboard([['🔻 Схуднення', '⚖️ Підтримка', '🔺 Набір маси']])
+        .oneTime()
+        .resize()
+    );
+    return ctx.wizard.next();
+  },
+  // Final Step: Calculation and Result
+  async (ctx) => {
+    const goalLabel = (ctx.message as any)?.text;
+    const goal = GOAL_LABELS[goalLabel];
+    if (!goal) {
+      await ctx.reply('❌ Будь ласка, оберіть ціль за допомогою кнопок:');
       return;
     }
 
@@ -85,7 +108,8 @@ export const profileWizard = new Scenes.WizardScene<Scenes.WizardContext>(
       height: state.height,
       weight: state.weight,
       sex: state.sex,
-      activity: activity,
+      activity: state.activity,
+      goal: goal,
     };
 
     profile.bmr = calculateBMR(profile.weight, profile.height, profile.age, profile.sex);
@@ -100,7 +124,8 @@ export const profileWizard = new Scenes.WizardScene<Scenes.WizardContext>(
       `✅ Профіль збережено!\n\n` +
         `📊 Ваші результати:\n` +
         `BMR (Базальний метаболізм): ${Math.round(profile.bmr)} ккал\n` +
-        `TDEE (Денна норма калорій): ${Math.round(profile.tdee)} ккал`,
+        `TDEE (Денна норма калорій): ${Math.round(profile.tdee)} ккал\n` +
+        `🎯 Ціль: ${goalLabel}`,
       Markup.removeKeyboard()
     );
 

@@ -1,11 +1,9 @@
 import { Scenes, Markup } from 'telegraf';
 import { UserProfile, Sex, ActivityLevel } from '../types.js';
 import { calculateBMR, calculateTDEE } from '../utils/calculator.js';
+import { saveUserProfile } from '../database/db.js';
 
 export const PROFILE_WIZARD_ID = 'PROFILE_WIZARD';
-
-// In-memory store for demo purposes. In a real app, use a database.
-export const userProfiles: Record<number, UserProfile> = {};
 
 export const profileWizard = new Scenes.WizardScene<Scenes.WizardContext>(
   PROFILE_WIZARD_ID,
@@ -93,9 +91,9 @@ export const profileWizard = new Scenes.WizardScene<Scenes.WizardContext>(
     profile.bmr = calculateBMR(profile.weight, profile.height, profile.age, profile.sex);
     profile.tdee = calculateTDEE(profile.bmr, profile.activity);
 
-    // Save profile
+    // Save profile to DB
     if (ctx.from) {
-      userProfiles[ctx.from.id] = profile;
+      saveUserProfile(ctx.from.id, profile);
     }
 
     await ctx.reply(
